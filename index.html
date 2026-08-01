@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Menu — Название блюда</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(180deg, #0a0a0a 0%, #141414 100%);
+            color: #f5f5f5;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 24px 20px 40px;
+        }
+
+        /* Шапка */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .restaurant-name {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        .dish-title {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dish-subtitle {
+            font-size: 15px;
+            color: #999;
+            font-weight: 400;
+        }
+
+        .price-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 16px;
+            background: rgba(255, 154, 86, 0.12);
+            border: 1px solid rgba(255, 154, 86, 0.25);
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 22px;
+            font-weight: 700;
+            color: #ff9a56;
+        }
+
+        /* 3D Viewer */
+        .viewer-card {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background: linear-gradient(145deg, #1a1a1a 0%, #0f0f0f 100%);
+            border-radius: 28px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 24px 48px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            --poster-color: transparent;
+            --progress-bar-color: #ff9a56;
+            --progress-bar-height: 3px;
+        }
+
+        .viewer-hint {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #aaa;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* AR кнопка */
+        .ar-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+            color: #111;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 10;
+        }
+
+        .ar-btn:active {
+            transform: translateX(-50%) scale(0.96);
+        }
+
+        .ar-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Карточки информации */
+        .info-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 22px;
+            margin-bottom: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-card h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            color: #ff9a56;
+            font-weight: 700;
+        }
+
+        .info-card p, .info-card li {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #bbb;
+        }
+
+        .info-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-card ul li {
+            padding-left: 18px;
+            position: relative;
+            margin-bottom: 6px;
+        }
+
+        .info-card ul li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 6px;
+            height: 6px;
+            background: #ff6b6b;
+            border-radius: 50%;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin: 4px 4px 0 0;
+            color: #999;
+        }
+
+        .badge.warning {
+            background: rgba(255, 107, 107, 0.1);
+            border-color: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        /* Видео готовки */
+        .video-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+
+        .video-card h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 22px 22px 0;
+            color: #ff9a56;
+            font-weight: 700;
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-top: 56.25%;
+            margin: 16px 22px 22px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #0a0a0a;
+        }
+
+        .video-wrapper video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Подвал */
+        .footer-hint {
+            text-align: center;
+            margin-top: 30px;
+            padding: 24px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+            border: 2px dashed rgba(255,255,255,0.08);
+        }
+
+        .footer-hint p {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .qr-placeholder {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 14px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container > * {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        .container > *:nth-child(1) { animation-delay: 0s; }
+        .container > *:nth-child(2) { animation-delay: 0.1s; }
+        .container > *:nth-child(3) { animation-delay: 0.2s; }
+        .container > *:nth-child(4) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка -->
+        <div class="header">
+            <div class="restaurant-name">Ресторан «Название»</div>
+            <h1 class="dish-title">Жареный аквамарин</h1>
+            <p class="dish-subtitle">Авторское блюдо шеф-повара</p>
+            <div class="price-tag">
+                <span>🔥</span>
+                <span>1 290 ₽</span>
+            </div>
+        </div>
+
+        <!-- 3D Viewer -->
+        <div class="viewer-card">
+            <div class="viewer-hint">👆 Вращайте пальцем · 🤏 Масштабируйте</div>
+
+            <model-viewer 
+                src="dish.glb"
+                ios-src="dish.usdz"
+                alt="3D модель блюда «Жареный аквамарин»"
+                camera-controls
+                auto-rotate
+                rotation-per-second="20deg"
+                exposure="1.1"
+                shadow-intensity="1.2"
+                shadow-softness="0.6"
+                environment-image="neutral"
+                interaction-prompt="none"
+                camera-orbit="0deg 75deg 105%"
+                min-camera-orbit="auto auto 80%"
+                max-camera-orbit="auto auto 150%">
+
+                <button slot="ar-button" class="ar-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Посмотреть на столе
+                </button>
+            </model-viewer>
+        </div>
+
+        <!-- Описание -->
+        <div class="info-card">
+            <h2>Описание</h2>
+            <p>Нежнейшее филе морского языка в хрустящей панировке из пармезана, подаётся на подушке из шпинатного пюре с соусом из белого вина и чёрного трюфеля. Украшено микрозеленью и каплями бальзамической глазури.</p>
+        </div>
+
+        <!-- Состав -->
+        <div class="info-card">
+            <h2>Состав</h2>
+            <ul>
+                <li>Филе морского языка — 180 г</li>
+                <li>Пармезан DOP 24 мес. — 40 г</li>
+                <li>Шпинат свежий — 80 г</li>
+                <li>Соус из белого вина с трюфелем — 50 мл</li>
+                <li>Микрозелень (горох, редис) — 15 г</li>
+                <li>Бальзамическая глазурь — 10 мл</li>
+            </ul>
+        </div>
+
+        <!-- Аллергены -->
+        <div class="info-card">
+            <h2>Аллергены</h2>
+            <span class="badge warning">🐟 Рыба</span>
+            <span class="badge warning">🥛 Молочные продукты</span>
+            <span class="badge warning">🌾 Глютен</span>
+            <span class="badge">🥚 Яйцо</span>
+        </div>
+
+        <!-- Пищевая ценность -->
+        <div class="info-card">
+            <h2>Пищевая ценность</h2>
+            <p>🔥 320 ккал · 🥩 28 г белков · 🧈 18 г жиров · 🍞 12 г углеводов · ⚖️ Вес: 340 г</p>
+        </div>
+
+        <!-- Видео готовки -->
+        <div class="video-card">
+            <h2>Процесс приготовления</h2>
+            <div class="video-wrapper">
+                <video controls poster="video-poster.jpg" preload="metadata">
+                    <source src="cooking-video.mp4" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
+                </video>
+            </div>
+        </div>
+
+        <!-- Подвал -->
+        <div class="footer-hint">
+            <div class="qr-placeholder">📷</div>
+            <p>Наведите камеру телефона на блюдо в меню<br>или отсканируйте QR-код на столе,<br>чтобы увидеть его в дополненной реальности</p>
+        </div>
+    </div>
+</body>
+</html>
